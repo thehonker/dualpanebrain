@@ -62,7 +62,7 @@ Once you have your prompt ready, click the `Generate` button located on the righ
 
 This will send the contents of the prompt pane to the AI API as a `user` message. A new document will open in `vscode.ViewColumn.Two` (response pane), and API responses will be streamed and displayed there:
 
-![Dual Pane Brain Generation Video](doc/media/readme/generation.mp4)
+![Dual Pane Brain Generation Gif](doc/media/readme/generation.gif)
 
 ## Continuing
 
@@ -78,7 +78,7 @@ If `dpb.sendFullPromptTextOnContinue` is `true`, the text in the prompt pane is 
 
 Let's try editing some text partway up the initial output and clicking `Continue`:
 
-![Dual Pane Brain Continuation Video](doc/media/readme/continuation.mp4)
+![Dual Pane Brain Continuation Gif](doc/media/readme/continuation.gif)
 
 ## Wrapping up
 

@@ -16,6 +16,10 @@ let openai: any = null;
 
 let outputChannel: any = null;
 
+var sendFullPromptTextOnContinueString: string = vscode.workspace.getConfiguration('dpb').get('sendFullPromptTextOnContinue') || 'false';
+
+var sendFullPromptTextOnContinue = JSON.stringify(parseBool(sendFullPromptTextOnContinueString));
+
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Dual Pane Brain");
 
@@ -26,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const generateCommandId = 'dpb.generate';
   const continueCommandId = 'dpb.continue';
   const setTokenCommand = 'dpb.setToken';
-  
+
   statusBarGenerateButton = vscode.window.createStatusBarItem(generateCommandId, vscode.StatusBarAlignment.Right, 100);
   statusBarGenerateButton.command = generateCommandId;
   statusBarGenerateButton.text = 'Generate';
@@ -54,6 +58,13 @@ export async function activate(context: vscode.ExtensionContext) {
   }));
 }
 
+/**
+ * "Generate" command
+ * @param context
+ * @param authSettings
+ * @returns
+ */
+
 async function initialGeneration(context: any, authSettings: AuthSettings): Promise<void> {
   const apiModel: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('model')).replaceAll('\"', '') || '';
   const apiUrl: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('apiUrl')).replaceAll('\"', '') || '';
@@ -63,9 +74,11 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
     baseURL: apiUrl,
     apiKey: apiKey,
   });
-  
+
   // If there isn't already a second editor open, spawn one
-  await openUpdateEditors();
+  let panes = await openUpdateEditors();
+  responsePane = panes.responsePane;
+  promptPane = panes.promptPane;
 
   // Get contents of first editor
   if (!promptPane) {
@@ -91,6 +104,9 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
 
   var textToSend = promptSelectedText ? promptSelectedText : promptText;
 
+  outputChannel.appendLine('Sending prompt:');
+  outputChannel.appendLine(textToSend);
+
   const params = {
     messages: [{
       role: 'user',
@@ -99,7 +115,6 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
     stream: true,
   };
 
-    
   responsePane.edit((editBuilder: any) => {
     editBuilder.insert(responseRange.end, '\n\n~~~\n\n');
   });
@@ -108,10 +123,10 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
     const stream = await openai.chat.completions.create(params);
 
     for await (const chunk of stream) {
-      outputChannel.appendLine(JSON.stringify(chunk, null, 2));
+      
       responseLastLine = await responseDocument.lineAt(responseDocument.lineCount - 1);
       responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-   
+
       // Append the text to the document
       responsePane.edit(async (editBuilder: any) => {
         editBuilder.insert(responseRange.end, `${chunk.choices[0]?.message?.content}`);
@@ -120,16 +135,19 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
 
     responseLastLine = await responseDocument.lineAt(responseDocument.lineCount - 1);
     responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-  
-    responsePane.edit((editBuilder: any) => {
-      editBuilder.insert(responseRange.end, '\n\n~~~\n\n');
-    });
+
   } catch (error) {
     outputChannel.appendLine(error);
   }
   return;
 }
 
+/**
+ * "Continue" command
+ * @param context 
+ * @param authSettings 
+ * @returns 
+ */
 async function continueGeneration(context: any, authSettings: AuthSettings): Promise<void> {
   const apiModel: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('model')).replaceAll('\"', '') || '';
   const apiUrl: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('apiUrl')).replaceAll('\"', '') || '';
@@ -141,7 +159,9 @@ async function continueGeneration(context: any, authSettings: AuthSettings): Pro
   });
 
   // If there isn't already a second editor open, spawn one
-  await openUpdateEditors();
+  let panes = await openUpdateEditors();
+  responsePane = panes.responsePane;
+  promptPane = panes.promptPane;
 
   // Get contents of first editor
   if (!promptPane) {
@@ -163,15 +183,23 @@ async function continueGeneration(context: any, authSettings: AuthSettings): Pro
   const responseDocument = responsePane.document;
   const responseSelection = responsePane.selection;
 
-  const responseText = await responseDocument.getText();
+  const responseTextAll = await responseDocument.getText();
+
   const responseSelectedText = await responseDocument.getText(responseSelection);
 
-  var responseLastLine = await responseDocument.lineAt(responseDocument.lineCount - 1);
-  var responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
+  var responseSelectedLine = await responseDocument.lineAt(responsePane.selection.active.line);
+  var responseSelectedRange = new vscode.Range(responseSelectedLine.range.start, responseSelectedLine.range.end);
 
-  var promptTextToSend = promptSelectedText ? promptSelectedText : promptText;
+  const responsePriorTextRange = new vscode.Range(responseSelectedLine.range.start, new vscode.Position(0, 0));
+  const responsePriorText = await responseDocument.getText(responsePriorTextRange);
 
-  var responseTextToSend = responseSelectedText ? responseSelectedText : responseText;
+  var promptTextToSend = promptSelectedText ? promptSelectedText : (sendFullPromptTextOnContinue ? promptText : '');
+
+  var responseTextToSend = responseSelectedText ? responseSelectedText : responsePriorText;
+
+  outputChannel.appendLine('Sending prompt:');
+  outputChannel.appendLine(promptTextToSend);
+  outputChannel.appendLine(responseTextToSend);
 
   const params = {
     messages: [
@@ -190,19 +218,16 @@ async function continueGeneration(context: any, authSettings: AuthSettings): Pro
     const stream = await openai.chat.completions.create(params);
 
     for await (const chunk of stream) {
-      outputChannel.appendLine(JSON.stringify(chunk, null, 2));
-      responseLastLine = await responseDocument.lineAt(responseDocument.lineCount - 1);
-      responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-   
+      responseSelectedRange = new vscode.Range(responsePane.selection.start, responsePane.selection.end);
+
       // Append the text to the document
       responsePane.edit(async (editBuilder: any) => {
-        editBuilder.insert(responseRange.end, `${chunk.choices[0]?.message?.content}`);
+        editBuilder.insert(responseSelectedRange.end, `${chunk.choices[0]?.message?.content}`);
       });
     }
 
-    responseLastLine = await responseDocument.lineAt(responseDocument.lineCount - 1);
-    responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-
+    responseSelectedLine = await responseDocument.lineAt(responsePane.selection.active.line);
+    responseSelectedRange = new vscode.Range(responseSelectedLine.range.start, responseSelectedLine.range.end);
   } catch (error) {
     outputChannel.appendLine(error);
   }
@@ -247,6 +272,19 @@ export async function openUpdateEditors() {
   };
 }
 
+function parseBool(str: string) {
+  const validStrings = ["true","t","yes","y","on","1"]; // These strings are equivalent to boolean values of `true`.
+  const invalidStrings = ["false", "f", "no", "n", "off", "0"]; // These strings represent a false value.
+  let result;
+  if (validStrings.includes(str)) {
+    return true; // If the string is found in valid strings, it will be considered as `true`.
+  } else if (invalidStrings.includes(str)) {
+    return false; // Otherwise, if it's found in invalid strings array, it would be considered as a `false` value.
+  } else {
+    result = /^\d+$/.test(str); // If the string is not matching any valid or invalid keywords above, we will check whether its number using regular expressions to match only numbers and return false if so.
+    return !result; // Finally it returns true/false based on the matched value in regexp test method.
+  }
+}
 
 export class AuthSettings {
   private static _instance: AuthSettings;

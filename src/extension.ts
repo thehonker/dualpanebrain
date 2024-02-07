@@ -18,6 +18,11 @@ var sendFullPromptTextOnContinueString: string = vscode.workspace.getConfigurati
 
 var sendFullPromptTextOnContinue = JSON.stringify(parseBool(sendFullPromptTextOnContinueString));
 
+var debugString: string = vscode.workspace.getConfiguration('dpb').get('debug') || 'true';
+
+var debug = parseBool(debugString);
+
+
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Dual Pane Brain");
 
@@ -102,8 +107,7 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
 
   var textToSend = promptSelectedText ? promptSelectedText : promptText;
 
-  outputChannel.appendLine('Sending prompt:');
-  outputChannel.appendLine(textToSend);
+  
 
   const params = {
     messages: [{
@@ -114,6 +118,11 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
     model: apiModel,
   };
 
+  if (debug) {
+    outputChannel.appendLine('Sending prompt:');
+    outputChannel.appendLine(JSON.stringify(params, null, 2));
+  }
+
   responsePane.edit((editBuilder: any) => {
     editBuilder.insert(responseRange.end, '\n\n~~~\n\n');
   });
@@ -122,6 +131,11 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
     const stream = await openai.chat.completions.create(params);
 
     for await (const chunk of stream) {
+
+      if (debug) {
+        outputChannel.appendLine('Output Chunk:');
+        outputChannel.appendLine(JSON.stringify(chunk, null, 2));
+      }
       
       responseLastLine = await responseDocument.lineAt(responseDocument.lineCount - 1);
       responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);

@@ -4,6 +4,8 @@
 
 Welcome to the README for the **Dual Pane Brain** extension.
 
+![Dual Pane Brain Generation Gif](doc/media/readme/generation.gif)
+
 ## Introduction
 
 Dual Pane Brain is a WIP dual-pane editor for interacting with openai-compatible Large Language Model (LLM) endpoints. It is designed to provide an effortless way to create new LLM-generated content.
@@ -62,8 +64,6 @@ Once you have your prompt ready, click the `Generate` button located on the righ
 
 This will send the contents of the prompt pane to the AI API as a `user` message. A new document will open in `vscode.ViewColumn.Two` (response pane), and API responses will be streamed and displayed there:
 
-![Dual Pane Brain Generation Gif](doc/media/readme/generation.gif)
-
 ## Continuing
 
 This is where the magic happens.
@@ -75,10 +75,6 @@ When no text is selected in either pane, clicking the `Continue` button takes th
 When text is selected in ***either*** pane, the selected text is sent to the AI API as the prompt. The generated response is inserted ***after*** the cursor.
 
 If `dpb.sendFullPromptTextOnContinue` is `true`, the text in the prompt pane is sent regardless of it being selected or not. This option is handy to toggle on for some workflows. Expect to see a button for it in the future.
-
-Let's try editing some text partway up the initial output and clicking `Continue`:
-
-![Dual Pane Brain Continuation Gif](doc/media/readme/continuation.gif)
 
 ## Wrapping up
 

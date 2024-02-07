@@ -236,7 +236,7 @@ async function continueGeneration(context: any, authSettings: AuthSettings): Pro
 
       // Append the text to the document
       responsePane.edit(async (editBuilder: any) => {
-        editBuilder.insert(responseSelectedRange.end, `${chunk.choices[0]?.message?.content}`);
+        editBuilder.insert(responseSelectedRange.end, `${chunk.choices[0]?.delta?.content}`);
       });
     }
 

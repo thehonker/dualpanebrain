@@ -142,7 +142,7 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
 
       // Append the text to the document
       responsePane.edit(async (editBuilder: any) => {
-        editBuilder.insert(responseRange.end, `${chunk.choices[0]?.message?.content}`);
+        editBuilder.insert(responseRange.end, `${chunk.choices[0]?.delta?.content}`);
       });
     }
 

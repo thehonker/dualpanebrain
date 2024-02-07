@@ -4,8 +4,6 @@ import * as vscode from 'vscode';
 
 import OpenAI from 'openai';
 
-import { URL } from 'url';
-
 let statusBarGenerateButton: vscode.StatusBarItem;
 let statusBarContinueButton: vscode.StatusBarItem;
 
@@ -113,6 +111,7 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
       content: textToSend
     }],
     stream: true,
+    model: apiModel,
   };
 
   responsePane.edit((editBuilder: any) => {
@@ -213,6 +212,7 @@ async function continueGeneration(context: any, authSettings: AuthSettings): Pro
       }
     ],
     stream: true,
+    model: apiModel,
   };
   try {
     const stream = await openai.chat.completions.create(params);

@@ -21,6 +21,7 @@ It is developed against `oobabooga` but should work with anything that presents 
 ## Changelog
 
 ```
+0.0.5 - switch from `chunk.message` to `chunk.delta` for openai compat
 0.0.4 - add debug param
 0.0.3 - actually supply model param to the api call
 0.0.2 - write a readme, correct some functionality

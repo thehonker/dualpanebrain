@@ -4,6 +4,9 @@ import * as vscode from 'vscode';
 
 import OpenAI from 'openai';
 
+import { getUpdateConfig } from './util/config';
+import { ApiKeyStorage } from './util/apiKeyStorage';
+
 let statusBarGenerateButton: vscode.StatusBarItem;
 let statusBarContinueButton: vscode.StatusBarItem;
 
@@ -27,11 +30,12 @@ export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Dual Pane Brain");
 
   // Initialize and get current instance of our Secret Storage
-  AuthSettings.init(context);
-  const authSettings = AuthSettings.instance;
+  ApiKeyStorage.init(context);
+  const apiKeyStorage = ApiKeyStorage.instance;
 
   const generateCommandId = 'dpb.generate';
   const continueCommandId = 'dpb.continue';
+
   const setTokenCommand = 'dpb.setToken';
 
   statusBarGenerateButton = vscode.window.createStatusBarItem(generateCommandId, vscode.StatusBarAlignment.Right, 100);
@@ -47,31 +51,43 @@ export async function activate(context: vscode.ExtensionContext) {
   // initialize status bar on extension activation
 	updateStatusBarItems();
 
+
+
+  // Setup the register token command
   context.subscriptions.push(vscode.commands.registerCommand(setTokenCommand, async () => {
-    const tokenInput = await vscode.window.showInputBox();
-    await authSettings.storeAuthData(tokenInput);
+    // Building in flexibility for later - you're welcome future me!
+    const instanceName = 'default';
+    const tokenInput = await vscode.window.showInputBox({
+      password: true,
+      ignoreFocusOut: true,
+      placeHolder: 'areallycoolapikey',
+      prompt: `Enter your api key for instance ${instanceName}`,
+    }) || '';
+    await apiKeyStorage.storeApiKey(instanceName, tokenInput);
   }));
 
+
+
   context.subscriptions.push(vscode.commands.registerCommand(generateCommandId, async () => {
-    await initialGeneration(context, authSettings);
+    await initialGeneration(context, apiKeyStorage);
   }));
 
   context.subscriptions.push(vscode.commands.registerCommand(continueCommandId, async () => {
-    await continueGeneration(context, authSettings);
+    await continueGeneration(context, apiKeyStorage);
   }));
 }
 
 /**
  * "Generate" command
  * @param context
- * @param authSettings
+ * @param apiKeyStorage
  * @returns
  */
 
-async function initialGeneration(context: any, authSettings: AuthSettings): Promise<void> {
+async function initialGeneration(context: any, apiKeyStorage: ApiKeyStorage): Promise<void> {
   const apiModel: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('model')).replaceAll('\"', '') || '';
   const apiUrl: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('apiUrl')).replaceAll('\"', '') || '';
-  const apiKey = await authSettings.getAuthData();
+  const apiKey = await apiKeyStorage.getApiKey('default');
 
   openai = new OpenAI({
     baseURL: apiUrl,
@@ -124,7 +140,7 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
   }
 
   responsePane.edit((editBuilder: any) => {
-    editBuilder.insert(responseRange.end, '\n\n~~~\n\n');
+    editBuilder.insert(responseRange.end, '\n\n---\n\n');
   });
 
   try {
@@ -161,10 +177,10 @@ async function initialGeneration(context: any, authSettings: AuthSettings): Prom
  * @param authSettings 
  * @returns 
  */
-async function continueGeneration(context: any, authSettings: AuthSettings): Promise<void> {
+async function continueGeneration(context: any, apiKeyStorage: ApiKeyStorage): Promise<void> {
   const apiModel: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('model')).replaceAll('\"', '') || '';
   const apiUrl: string = JSON.stringify(vscode.workspace.getConfiguration('dpb').get('apiUrl')).replaceAll('\"', '') || '';
-  const apiKey = await authSettings.getAuthData();
+  const apiKey = await apiKeyStorage.getApiKey('default');
 
   openai = new OpenAI({
     baseURL: apiUrl,
@@ -278,7 +294,8 @@ export async function openUpdateEditors() {
   }
 
   if (responsePane === null) {
-    await openBlankDocument();
+    const newDocument = await openBlankDocument();
+    responsePane = newDocument.document;
   }
   return {
     promptPane: promptPane,
@@ -297,41 +314,5 @@ function parseBool(str: string) {
   } else {
     result = /^\d+$/.test(str); // If the string is not matching any valid or invalid keywords above, we will check whether its number using regular expressions to match only numbers and return false if so.
     return !result; // Finally it returns true/false based on the matched value in regexp test method.
-  }
-}
-
-export class AuthSettings {
-  private static _instance: AuthSettings;
-
-  constructor(private secretStorage: vscode.SecretStorage) {}
-
-  static init(context: vscode.ExtensionContext): void {
-      /*
-      Create instance of new AuthSettings.
-      */
-      AuthSettings._instance = new AuthSettings(context.secrets);
-  }
-
-  static get instance(): AuthSettings {
-      /*
-      Getter of our AuthSettings existing instance.
-      */
-      return AuthSettings._instance;
-  }
-
-  async storeAuthData(token?: string): Promise<void> {
-      /*
-      Update values in bugout_auth secret storage.
-      */
-      if (token) {
-          this.secretStorage.store("dualPaneBrain_openai_token", token);
-      }
-  }
-
-  async getAuthData(): Promise<string | undefined> {
-      /*
-      Retrieve data from secret storage.
-      */
-      return await this.secretStorage.get("dualPaneBrain_openai_token");
   }
 }

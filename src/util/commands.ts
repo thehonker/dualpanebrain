@@ -2,45 +2,53 @@
 
 import * as vscode from 'vscode';
 
-import { ApiKeyStorage, promptApiKey } from './apiKeyStorage';
+import { ApiConfiguration } from './apiConfigurations';
+import { Globals } from './globals';
 
-import {  } from '../commands/generate';
 
-const log = vscode.window.createOutputChannel("Dual Pane Brain");
+import { GenerationCommands } from '../commands/generate';
 
-const commandNamespace = 'dpb';
+const commandNamespace = Globals.configNamespace;
+const log = Globals.log;
 
-class CommandEntry {
-  public text: string;
-  public command: string;
-  public handler: null | Function;
+export class Commands {
+  static commands = {
+    setupApiInstance: {
+      command: 'setupApiInstance',
+      handler: ApiConfiguration.setupApiInstance,
+    },
+    updateApiKey: {
+      command: 'updateApiKey',
+      handler: ApiConfiguration.updateApiKey,
+    },
+    setDefaultInstance: {
+      command: 'setDefaultInstance',
+      handler: ApiConfiguration.setDefaultApiInstance,
+    },
+    generate: {
+      command: 'generate',
+      handler: GenerationCommands.generate,
+    },
+    continue: {
+      command: 'continue',
+      handler: null,
+    },
+    stop: {
+      command: 'stop',
+      handler: null,
+    }
+  };
   
-  constructor(options: CommandEntry) {
-    this.text = options.text;
-    this.command = options.command;
-    this.handler = options.handler;
-  }
+  static async init(context: vscode.ExtensionContext) {
+    log.debug('util/commands:init() start');
+    Object.keys(Commands.commands).forEach((key) => {
+      log.debug(`Loading command configuration for ${key}`);
+      const command = (Commands.commands as any)[key];
+      context.subscriptions.push(
+        vscode.commands.registerCommand(
+          `${commandNamespace}.${command.command}`,
+          command.handler
+      ));
+    });
+  };
 }
-
-const commands = {
-  setToken: {
-    command: 'setToken',
-    handler: promptApiKey,
-  },
-};
-
-export async function init(context: vscode.ExtensionContext) {
-  ApiKeyStorage.init(context);
-  const apiKeyStorage = ApiKeyStorage.instance;
-  
-  Object.keys(commands).forEach((key) => {
-    const command = (commands as any)[key];
-    
-  // Setup the register token command
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      `${commandNamespace}.${command.command}`,
-      command.handler
-    ));
-  });
-};

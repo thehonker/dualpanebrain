@@ -1,4 +1,3 @@
-
 'use strict';
 
 /**
@@ -6,10 +5,13 @@
  */
 import * as vscode from 'vscode';
 
+import { Globals } from './globals';
+
 /**
  * A secret namespace used by the API key storage functionality.
  */
-const secretNamespace = 'dpb';
+const secretNamespace = Globals.configNamespace;
+const log = Globals.log;
 
 /**
  * API key storage class.
@@ -33,6 +35,7 @@ export class ApiKeyStorage {
    * @param context - The vscode.ExtensionContext object containing information about the extension.
    */
   static init(context: vscode.ExtensionContext): void {
+    log.debug('util/apiKeyStorage:init() start');
     // Create instance of new ApiKeyStorage.
     ApiKeyStorage._instance = new ApiKeyStorage(context.secrets);
   }
@@ -48,13 +51,15 @@ export class ApiKeyStorage {
   /**
    * A public method that asynchronously stores an API key in the secret storage using the given instance name and token.
    *
-   * @param instanceName - The instance identifier for the API key.
+   * @param instanceUUID - The instance identifier for the API key.
    * @param token - The API key to be stored.
    * @returns A Promise that resolves when the API key has been successfully stored.
    */
-  public async storeApiKey(instanceName: string, token: string): Promise<void> {
+  public async storeApiKey(instanceUUID: string, token: string): Promise<void> {
+    log.debug('util/apiKeyStorage:storeApiKey() start');
+    log.debug(`Storing api key for ${instanceUUID}`);
     // Update values in secret storage.
-    const keyPath = `${secretNamespace}.apikey.${instanceName}`;
+    const keyPath = `${secretNamespace}.apikey.${instanceUUID}`;
     if (token) {
       this.secretStorage.store(keyPath, token);
     }
@@ -66,46 +71,13 @@ export class ApiKeyStorage {
    * @param instanceName - The instance identifier for the API key.
    * @returns A Promise that resolves with the API key or undefined if the key is not found.
    */
-  public async getApiKey(instanceName: string): Promise<string | undefined> {
+  public async getApiKey(instanceUUID: string): Promise<string | undefined> {
+    log.debug('util/apiKeyStorage:getApiKey() start');
+    log.debug(`Fetching api key for ${instanceUUID}`);
     /*
     Retrieve data from secret storage.
     */
-    const keyPath = `${secretNamespace}.apikey.${instanceName}`;
+    const keyPath = `${secretNamespace}.apikey.${instanceUUID}`;
     return await this.secretStorage.get(keyPath);
   }
-}
-
-/**
- * A helper function that prompts the user to enter an API key and stores it using the APIKeyStorage class.
- *
- * This function should be called within the context of a vscode extension.
- *
- * @param context - The vscode.ExtensionContext object containing information about the extension.
- * @returns A Promise that resolves when the API key has been successfully stored.
- */
-export async function promptApiKey(context: vscode.ExtensionContext): Promise<void> {
-  // Initialize the ApiKeyStorage instance using the vscode.ExtensionContext object.
-  ApiKeyStorage.init(context);
-  const apiKeyStorage = ApiKeyStorage.instance;
-
-  // Prompt the user to enter an instance identifier for the API key.
-  const instanceName = await vscode.window.showInputBox({
-    prompt: 'Instance Identifier - One Word, [A-ZA-z0-9\\_\\-]',
-    placeHolder: 'default',
-    ignoreFocusOut: true,
-    password: false
-  }) || 'default';
-
-  // Prompt the user to enter the API key for the specified instance.
-  const tokenInput = await vscode.window.showInputBox({
-    prompt: `Enter your api key for instance ${instanceName}`,
-    placeHolder: 'areallycoolapikey',
-    ignoreFocusOut: true,
-    password: true,
-  }) || '';
-
-  // Store the API key using the ApiKeyStorage.storeApiKey method.
-  await apiKeyStorage.storeApiKey(instanceName, tokenInput);
-
-  return;
 }

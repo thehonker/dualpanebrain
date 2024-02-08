@@ -17,6 +17,21 @@
   "contributes": {
     "commands": [
       {
+        "command": "dpb.setupApiInstance",
+        "title": "Setup Api Instance",
+        "category": "Dual Pane Brain"
+      },
+      {
+        "command": "dpb.updateApiKey",
+        "title": "Update Api Key for Instance",
+        "category": "Dual Pane Brain"
+      },
+      {
+        "command": "dpb.setDefaultInstance",
+        "title": "Set Default Api Instance",
+        "category": "Dual Pane Brain"
+      },
+      {
         "command": "dpb.generate",
         "title": "Send contents of left hand editor to LLM as an initial prompt",
         "category": "Dual Pane Brain"
@@ -27,8 +42,8 @@
         "category": "Dual Pane Brain"
       },
       {
-        "command": "dpb.setToken",
-        "title": "Set api key",
+        "command": "dpb.stop",
+        "title": "Stop current generation",
         "category": "Dual Pane Brain"
       }
     ]

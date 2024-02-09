@@ -28,6 +28,11 @@ export class GenerationCommands {
     // TODO: allow user to select api instances
     const api = await (ApiConfiguration.apiConfigurations as any)[ApiConfiguration.defaultApiInstance];
 
+    const systemPrompt = await Config.get('systemPrompt');
+
+    log.debug('Loaded system prompt:');
+    log.debug(systemPrompt);
+
     await EditorControl.updateOpenPanes();
 
     const promptDocument = EditorControl.promptPane.document;
@@ -42,9 +47,14 @@ export class GenerationCommands {
 
     var textToSend = promptSelectedText ? promptSelectedText : promptText;
     const params: apiChatMessage = {
-      messages: [{
+      messages: [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
         role: 'user',
-        content: textToSend
+        content: textToSend,
       }],
       stream: true,
       model: api.apiModel,
@@ -71,8 +81,8 @@ export class GenerationCommands {
           responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
 
           // Append the text to the document
-          EditorControl.responsePane.edit(async (editBuilder: any) => {
-            editBuilder.insert(responseRange.end, `${chunk.choices[0]?.delta?.content}`);
+          await EditorControl.responsePane.edit(async (editBuilder: any) => {
+            await editBuilder.insert(responseRange.end, chunk.choices[0]?.message?.content ? `${chunk.choices[0]?.message?.content}` : `${chunk.choices[0]?.delta?.content}`);
           });
         }
 
@@ -92,6 +102,11 @@ export class GenerationCommands {
 
     // TODO: allow user to select api instances
     const api = await (ApiConfiguration.apiConfigurations as any)[ApiConfiguration.defaultApiInstance];
+
+    const systemPrompt = await Config.get('systemPrompt');
+
+    log.debug('Loaded system prompt:');
+    log.debug(systemPrompt);
 
     await EditorControl.updateOpenPanes();
 
@@ -120,11 +135,15 @@ export class GenerationCommands {
     const params: apiChatMessage = {
       messages: [
         {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
           role: 'user',
           content: promptTextToSend
         },
         {
-          role: 'user',
+          role: 'assistant',
           content: responseTextToSend
         }
       ],
@@ -149,8 +168,8 @@ export class GenerationCommands {
             responseSelectedRange = new vscode.Range(EditorControl.responsePane.selection.start, EditorControl.responsePane.selection.end);
 
             // Insert into the document at cursor
-            EditorControl.responsePane.edit(async (editBuilder: any) => {
-              editBuilder.insert(responseSelectedRange.end, `${chunk.choices[0]?.delta?.content}`);
+            await EditorControl.responsePane.edit(async (editBuilder: any) => {
+              await editBuilder.insert(responseSelectedRange.end, chunk.choices[0]?.message?.content ? `${chunk.choices[0]?.message?.content}` : `${chunk.choices[0]?.delta?.content}`);
             });
           }
 

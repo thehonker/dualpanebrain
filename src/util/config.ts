@@ -12,6 +12,10 @@ export const configEnum: any = {
     type: 'boolean',
     defaultValue: true,
   },
+  systemPrompt: {
+    type: 'string',
+    defaultValue: '',
+  },
 };
 
 export class Config {

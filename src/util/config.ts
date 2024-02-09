@@ -8,14 +8,14 @@ const configNamespace = Globals.configNamespace;
 const log = Globals.log;
 
 export const configEnum: any = {
-  sendFullPromptTextOnContinue: {
-    type: 'boolean',
-    defaultValue: true,
-  },
   systemPrompt: {
     type: 'string',
     defaultValue: '',
   },
+  continuePrompt: {
+    type: 'string',
+    defaultValue: 'Continue',
+  }
 };
 
 export class Config {

@@ -24,12 +24,6 @@ export const statusBarButtonConfig = {
     commandId: 'dpb.continue',
     alignment: 'Right',
     alignmentPriority: 999,
-  },
-  cancelButton: {
-    text: 'Stop',
-    commandId: 'dpb.stop',
-    alignment: 'Right',
-    alignmentPriority: 998,
   }
 };
 

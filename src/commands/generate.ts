@@ -50,7 +50,7 @@ export class GenerationCommands {
       messages: [
       {
         role: 'system',
-        content: systemPrompt,
+        content: systemPrompt ? systemPrompt : '',
       },
       {
         role: 'user',
@@ -95,18 +95,26 @@ export class GenerationCommands {
     });
   }
 
+  /**
+   * "Continue" command
+   * @param context vscode.ExtensionContext
+   * @returns
+   */
   public static async continue(context: vscode.ExtensionContext): Promise<void> {
     log.debug('commands/generate:continue() start');
-
-    const sendFullPromptTextOnContinue = await Config.get('sendFullPromptTextOnContinue');
 
     // TODO: allow user to select api instances
     const api = await (ApiConfiguration.apiConfigurations as any)[ApiConfiguration.defaultApiInstance];
 
     const systemPrompt = await Config.get('systemPrompt');
 
+    const continuePrompt = await Config.get('continuePrompt');
+
     log.debug('Loaded system prompt:');
     log.debug(systemPrompt);
+    
+    log.debug('Loaded continuation prompt:');
+    log.debug(continuePrompt);
 
     await EditorControl.updateOpenPanes();
 
@@ -129,23 +137,27 @@ export class GenerationCommands {
     const responsePriorTextRange = new vscode.Range(responseSelectedLine.range.start, new vscode.Position(0, 0));
     const responsePriorText = responseDocument.getText(responsePriorTextRange);
 
-    var promptTextToSend = promptSelectedText ? promptSelectedText : (sendFullPromptTextOnContinue ? promptText : '');
+    var promptTextToSend = promptSelectedText ? promptSelectedText : promptText;
 
     var responseTextToSend = responseSelectedText ? responseSelectedText : responsePriorText;
     const params: apiChatMessage = {
       messages: [
         {
           role: 'system',
-          content: systemPrompt,
+          content: systemPrompt ? systemPrompt : '',
         },
         {
           role: 'user',
-          content: promptTextToSend
+          content: promptTextToSend,
         },
         {
           role: 'assistant',
-          content: responseTextToSend
-        }
+          content: responseTextToSend,
+        },
+        {
+          role: 'user',
+          content: continuePrompt ? continuePrompt : 'Continue',
+        },
       ],
       stream: true,
       model: api.apiModel,

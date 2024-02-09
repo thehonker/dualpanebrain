@@ -2,7 +2,7 @@
   "name": "dualpanebrain",
   "displayName": "dualpanebrain",
   "description": "Dual Pane Notebook For OpenAI Compatiable API Interaction",
-  "version": "1.0.4",
+  "version": "1.2.0",
   "publisher": "thehonker",
   "engines": {
     "vscode": "^1.86.0"
@@ -22,12 +22,6 @@
         "id": "dpb",
         "title": "Dual Pane Brain",
         "properties": {
-          "dpb.sendFullPromptTextOnContinue": {
-            "type": "boolean",
-            "default": true,
-            "description": "Send full prompt text on continue command",
-            "scope": "application"
-          },
           "dpb.apiConfigurations": {
             "type": "string",
             "default": null,
@@ -39,6 +33,13 @@
             "type": "string",
             "default": null,
             "description": "System prompt",
+            "editPresentation": "multilineText",
+            "scope": "application"
+          },
+          "dpb.continuePrompt": {
+            "type": "string",
+            "default": "Continue",
+            "description": "Continuation sub-prompt",
             "editPresentation": "multilineText",
             "scope": "application"
           }
@@ -69,11 +70,6 @@
       {
         "command": "dpb.continue",
         "title": "Send contents of both panes to LLM as a continuation prompt",
-        "category": "Dual Pane Brain"
-      },
-      {
-        "command": "dpb.stop",
-        "title": "Stop current generation",
         "category": "Dual Pane Brain"
       }
     ]

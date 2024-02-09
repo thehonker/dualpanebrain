@@ -41,7 +41,7 @@ How do I bake cookies?
 
 Once you have your prompt ready, click the `Generate` button located on the right side of the status bar.
 
-This will send the contents of the prompt pane to the AI API as a `user` message. A new document will open in `vscode.ViewColumn.Two` (response pane), and API responses will be streamed and displayed there:
+This will send the contents of the prompt pane to the AI API as a `user` message. A new document will open in `vscode.ViewColumn.Two` (response pane), and API responses will be streamed and displayed there.
 
 ## Continuing
 
@@ -49,11 +49,16 @@ This is where the magic happens.
 
 The `Continue` button does a few different things based on the selected text in both the prompt and response panes.
 
-When no text is selected in either pane, clicking the `Continue` button takes the contents of the response pane ***before*** the cursor and sends it to the AI API, appending the generated text **after** the cursor.
+When no text is selected in either pane, clicking the `Continue` button takes the contents of the prompt pane and response pane ***before*** the cursor and sends it to the AI API, appending the newly generated text **after** the cursor.
 
 When text is selected in ***either*** pane, the selected text is sent to the AI API as the prompt. The generated response is inserted ***after*** the cursor.
 
-If `dpb.sendFullPromptTextOnContinue` is `true`, the text in the prompt pane is sent regardless of it being selected or not. This option is handy to toggle on for some workflows. Expect to see a button for it in the future.
+## Troubleshooting
+
+If things seem off, try deleting everything in your settings.json that's namespaced under `dpb`.
+Then, reload the window, re-add your instance, and try again.
+
+Instance management is a high priority on the development roadmap.
 
 ## Wrapping up
 

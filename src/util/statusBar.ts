@@ -2,59 +2,59 @@
 
 import * as vscode from 'vscode';
 
+import { Globals } from './globals';
+
+const log = Globals.log;
+
+/**
+ * An object for storing various button configurations.
+ * Each button configuration is identified by a key,
+ * and contains properties: text, commandId, alignment, alignmentPriority.
+ * statusbarItem is assigned later on
+ */
+export const statusBarButtonConfig = {
+  generateButton: {
+    text: 'Generate',
+    commandId: 'dpb.generate',
+    alignment: 'Right',
+    alignmentPriority: 1000,
+  },
+  continueButton: {
+    text: 'Continue',
+    commandId: 'dpb.continue',
+    alignment: 'Right',
+    alignmentPriority: 999,
+  },
+  cancelButton: {
+    text: 'Stop',
+    commandId: 'dpb.stop',
+    alignment: 'Right',
+    alignmentPriority: 998,
+  }
+};
+
 export class StatusBarItems {
   private static _context: vscode.ExtensionContext;
   
-  // An object for holding all the status bar buttons
-  public static statusBarButtons: any = {};
-
-  /**
-   * An object for storing various button configurations.
-   * Each button configuration is identified by a key,
-   * and contains properties: text, commandId, alignment, alignmentPriority.
-   * statusbarItem is assigned later on
-   */
-  public static statusBarButtonConfig = {
-    generateButton: {
-      text: 'Generate',
-      commandId: 'dpb.generate',
-      alignment: 'Right',
-      alignmentPriority: 100,
-      statusBarItem: null,
-    },
-    continueButton: {
-      text: 'Continue',
-      commandId: 'dpb.continue',
-      alignment: 'Right',
-      alignmentPriority: 99,
-      statusBarItem: null,
-    },
-    cancelButton: {
-      text: 'Stop',
-      commandId: 'dpb.stop',
-      alignment: 'Right',
-      alignmentPriority: 98,
-      statusBarItem: null,
-    }
-  };
-
   public static async init(context: vscode.ExtensionContext): Promise<void> {
+    log.debug('util/statusBar:init() start');
     StatusBarItems._context = context;
-    await StatusBarItems.updateStatusBarItems(context);
+    await StatusBarItems.updateStatusBarItems();
   }
 
   // This function updates the status bar items when called
-  public static async updateStatusBarItems(context: vscode.ExtensionContext) {
+  public static async updateStatusBarItems() {
+    log.debug('util/statusBar:updateStatusBarItems() start');
     // Loop through the keys of the statusBarButtonConfig object
-    Object.keys(StatusBarItems.statusBarButtonConfig).forEach((key: string) => {
+    Object.keys(statusBarButtonConfig).forEach((key: string) => {
       // Get the text from the key configuration object
-      const text = (StatusBarItems.statusBarButtonConfig as any)[key]['text'];
+      const text = (statusBarButtonConfig as any)[key]['text'];
       // Get the commandId from the key configuration object
-      const commandId = (StatusBarItems.statusBarButtonConfig as any)[key]['commandId'];
+      const commandId = (statusBarButtonConfig as any)[key]['commandId'];
       // Get the alignment from the key configuration object
-      const alignment = (StatusBarItems.statusBarButtonConfig as any)[key]['alignment'];
+      const alignment = (statusBarButtonConfig as any)[key]['alignment'];
       // Get the alignmentPriority from the key configuration object
-      const alignmentPriority = (StatusBarItems.statusBarButtonConfig as any)[key]['alignmentPriority'];
+      const alignmentPriority = (statusBarButtonConfig as any)[key]['alignmentPriority'];
 
       // Get the enumerated value from VS Code's StatusBarAlignment object
       const alignmentEnumerated = Number(vscode.StatusBarAlignment[alignment]);
@@ -69,10 +69,13 @@ export class StatusBarItems {
         // Provide alignmentPriority as the third argument
         alignmentPriority
       );
-      // Assign the statusBarItem object to its respective key in the statusBarButtons object
-      StatusBarItems.statusBarButtons[key] = statusBarItem;
+
+      statusBarItem.command = commandId;
+      statusBarItem.text = text;
+
       // Add the statusBarItem object to the subscriptions array in the provided context
-      context.subscriptions.push(statusBarItem);
+      // StatusBarItems._context.subscriptions.push(statusBarItem);
+      statusBarItem.show();
     });
   }
 }

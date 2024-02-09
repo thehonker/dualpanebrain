@@ -2,10 +2,9 @@
 
 import * as vscode from 'vscode';
 
-import { ApiConfiguration } from './apiConfigurations';
 import { Globals } from './globals';
 
-
+import { ApiConfiguration } from './apiConfigurations';
 import { GenerationCommands } from '../commands/generate';
 
 const commandNamespace = Globals.configNamespace;
@@ -31,7 +30,7 @@ export class Commands {
     },
     continue: {
       command: 'continue',
-      handler: null,
+      handler: GenerationCommands.continue,
     },
     stop: {
       command: 'stop',

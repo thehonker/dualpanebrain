@@ -14,46 +14,20 @@ It is developed against `oobabooga` but should work with anything that presents 
 
 ## Upcoming features:
 
-- Track open panes properly so we don't break if the user closes the output pane
-- "Stop Generation" button to cut off the bot mid sentence
 - Various settings toggle buttons somehow
-
-## Changelog
-
-```
-0.0.6 - switch from `chunk.message` to `chunk.delta` for openai compat - in both places
-0.0.5 - switch from `chunk.message` to `chunk.delta` for openai compat
-0.0.4 - add debug param
-0.0.3 - actually supply model param to the api call
-0.0.2 - write a readme, correct some functionality
-0.0.1 - initial release
-```
+- Better management of api instances - expect breaking changes at some point
 
 ## Setup
 
 To get started with Dual Pane Brain, follow these steps:
 
 1. Install the extension from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=thehonker.dualpanebrain).
-2. Open your settings.json file in Visual Studio Code.
-3. Add the following JSON object inside the `"dpb"` object:
-
-```json
-"dpb": {
-  "apiUrl": "your_openai_compatiable_endpoint",
-  "model": "",
-  "sendFullPromptTextOnContinue": false,
-  "debug": true
-}
-```
-
-Replace `"your_openai_compatible_endpoint"` with your preferred openai-compatible endpoint URL (e.g., https://api.openai.com/v1/).
-
-Next, fill in the other settings as per your requirements:
-
-`sendFullPromptTextOnContinue` - Include the full prompt text in `Continue` actions regardless of text selection.
-
-Finally, open the command pallete and search "set api key", selecting the "Dual Pane Brain" entry. This will prompt you for your api key, which is securly stored using vscode magic. Go read the code if you don't trust me, it's very simple.
-
+2. Run the command `>dpb.setupApiInstance`.
+3. Fill out the prompts:
+    - a display name for this instance
+    - the model this instance is running
+    - your preferred openai-compatible endpoint URL (e.g., `http://oobabooga.local:5000`, `https://api.openai.com/v1/`)
+    - your api key
 
 ## Generating
 To generate, open a text document in `vscode.ViewColumn.One` (the left hand side).

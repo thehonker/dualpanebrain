@@ -32,14 +32,14 @@ export class GenerationCommands {
 
     const promptDocument = EditorControl.promptPane.document;
     const promptSelection = EditorControl.promptPane.selection;
-  
+
     const promptText = promptDocument.getText();
     const promptSelectedText = promptDocument.getText(promptSelection);
 
     const responseDocument = EditorControl.responsePane.document;
     var responseLastLine = responseDocument.lineAt(responseDocument.lineCount - 1);
     var responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-  
+
     var textToSend = promptSelectedText ? promptSelectedText : promptText;
     const params: apiChatMessage = {
       messages: [{
@@ -54,58 +54,68 @@ export class GenerationCommands {
       editBuilder.insert(responseRange.end, '\n\n---\n\n');
     });
 
-    try {
-      const stream = await api.openai.chat.completions.create(params);
-  
-      for await (const chunk of stream) {
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Generating...",
+      cancellable: true
+    }, async (progress, token) => {
+      try {
+        const stream = await api.openai.chat.completions.create(params);
+
+        token.onCancellationRequested(() => {
+          stream.controller.abort();
+        });
+
+        for await (const chunk of stream) {
+          responseLastLine = responseDocument.lineAt(responseDocument.lineCount - 1);
+          responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
+
+          // Append the text to the document
+          EditorControl.responsePane.edit(async (editBuilder: any) => {
+            editBuilder.insert(responseRange.end, `${chunk.choices[0]?.delta?.content}`);
+          });
+        }
+
         responseLastLine = responseDocument.lineAt(responseDocument.lineCount - 1);
         responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-  
-        // Append the text to the document
-        EditorControl.responsePane.edit(async (editBuilder: any) => {
-          editBuilder.insert(responseRange.end, `${chunk.choices[0]?.delta?.content}`);
-        });
+
+      } catch (error) {
+        log.error(error as Error);
       }
-  
-      responseLastLine = responseDocument.lineAt(responseDocument.lineCount - 1);
-      responseRange = new vscode.Range(responseLastLine.range.start, responseLastLine.range.end);
-  
-    } catch (error) {
-      log.error(error as Error);
-    }
+    });
   }
 
   public static async continue(context: vscode.ExtensionContext): Promise<void> {
-    log.debug('commands/generate:continue() continue');
+    log.debug('commands/generate:continue() start');
 
     const sendFullPromptTextOnContinue = await Config.get('sendFullPromptTextOnContinue');
 
     // TODO: allow user to select api instances
-    const api = await ApiConfiguration.getApiConfiguration(ApiConfiguration.defaultApiInstance);
+    const api = await (ApiConfiguration.apiConfigurations as any)[ApiConfiguration.defaultApiInstance];
 
     await EditorControl.updateOpenPanes();
 
     const promptDocument = EditorControl.promptPane.document;
     const promptSelection = EditorControl.promptPane.selection;
-  
-    const promptText = await promptDocument.getText();
-    const promptSelectedText = await promptDocument.getText(promptSelection);
-  
+
+    const promptText = promptDocument.getText();
+    const promptSelectedText = promptDocument.getText(promptSelection);
+
     const responseDocument = EditorControl.responsePane.document;
     const responseSelection = EditorControl.responsePane.selection;
-  
-    const responseTextAll = await responseDocument.getText();
-  
-    const responseSelectedText = await responseDocument.getText(responseSelection);
-  
-    var responseSelectedLine = await responseDocument.lineAt(EditorControl.responsePane.selection.active.line);
+
+    const responseTextAll = responseDocument.getText();
+
+    const responseSelectedText = responseDocument.getText(responseSelection);
+
+    var responseSelectedLine = responseDocument.lineAt(EditorControl.responsePane.selection.active.line);
     var responseSelectedRange = new vscode.Range(responseSelectedLine.range.start, responseSelectedLine.range.end);
-  
+
     const responsePriorTextRange = new vscode.Range(responseSelectedLine.range.start, new vscode.Position(0, 0));
-    const responsePriorText = await responseDocument.getText(responsePriorTextRange);
-  
+    const responsePriorText = responseDocument.getText(responsePriorTextRange);
+
     var promptTextToSend = promptSelectedText ? promptSelectedText : (sendFullPromptTextOnContinue ? promptText : '');
-  
+
     var responseTextToSend = responseSelectedText ? responseSelectedText : responsePriorText;
     const params: apiChatMessage = {
       messages: [
@@ -122,22 +132,36 @@ export class GenerationCommands {
       model: api.apiModel,
     };
 
-    try {
-      const stream = await api.openai.chat.completions.create(params);
-  
-      for await (const chunk of stream) {
-        responseSelectedRange = new vscode.Range(EditorControl.responsePane.selection.start, EditorControl.responsePane.selection.end);
-  
-        // Insert into the document at cursor
-        EditorControl.responsePane.edit(async (editBuilder: any) => {
-          editBuilder.insert(responseSelectedRange.end, `${chunk.choices[0]?.delta?.content}`);
-        });
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Continuing...",
+      cancellable: true
+    }, async (progress, token) => {
+      try {
+        if (api.openai) {
+          const stream = await api.openai.chat.completions.create(params);
+
+          token.onCancellationRequested(() => {
+            stream.controller.abort();
+          });
+
+          for await (const chunk of stream) {
+            responseSelectedRange = new vscode.Range(EditorControl.responsePane.selection.start, EditorControl.responsePane.selection.end);
+
+            // Insert into the document at cursor
+            EditorControl.responsePane.edit(async (editBuilder: any) => {
+              editBuilder.insert(responseSelectedRange.end, `${chunk.choices[0]?.delta?.content}`);
+            });
+          }
+
+          responseSelectedLine = await responseDocument.lineAt(EditorControl.responsePane.selection.active.line);
+          responseSelectedRange = new vscode.Range(responseSelectedLine.range.start, responseSelectedLine.range.end);
+        } else {
+          log.error('commands/generate:continue() api.openai is empty');
+        }
+      } catch (error) {
+        log.error(error as Error);
       }
-  
-      responseSelectedLine = await responseDocument.lineAt(EditorControl.responsePane.selection.active.line);
-      responseSelectedRange = new vscode.Range(responseSelectedLine.range.start, responseSelectedLine.range.end);
-    } catch (error) {
-      log.error(error as Error);
-    }
+    });
   }
 };

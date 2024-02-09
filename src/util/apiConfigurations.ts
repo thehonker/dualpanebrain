@@ -42,8 +42,6 @@ export class ApiConfiguration {
     }
     const configuredApiConfigurations = JSON.parse(apiConfigurationsString as any);
 
-    log.debug('configuredApiConfigurations' + JSON.stringify(configuredApiConfigurations, null, 2));
-
     const keys = Object.keys(configuredApiConfigurations);
 
     for (let i = 0; i < keys.length; i++) {
@@ -88,7 +86,6 @@ export class ApiConfiguration {
    */
   public static async setupApiConfiguration(options: any) {
     log.debug('util/apiConfiguration:setupApiConfiguration() start');
-    log.debug(JSON.stringify(options, null, 2));
 
     if (!options.instanceUUID) {
       log.debug('util/apiConfiguration:setupApiConfiguration() called without options.instanceUUID');

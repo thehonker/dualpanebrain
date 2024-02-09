@@ -2,7 +2,7 @@
   "name": "dualpanebrain",
   "displayName": "dualpanebrain",
   "description": "Dual Pane Notebook For OpenAI Compatiable API Interaction",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "thehonker",
   "engines": {
     "vscode": "^1.86.0"
@@ -13,7 +13,7 @@
   ],
   "icon": "doc/media/readme/logo.png",
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {

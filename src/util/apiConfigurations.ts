@@ -165,6 +165,11 @@ export class ApiConfiguration {
         vscode.ConfigurationTarget.Global
       );
 
+    if (ApiConfiguration.defaultApiInstance === '') {
+      ApiConfiguration.setDefaultApiInstance(options.instanceUUID);
+      log.debug(`Setting ${options.instanceUUID} as default`);
+    }
+
     log.debug(`API Instance ${options.instanceUUID} configured successfully`);
   }
 

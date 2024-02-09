@@ -2,6 +2,10 @@
 
 All notable changes to the "dualpanebrain" extension will be documented in this file.
 
+## [1.2.2]
+- bump package.json version
+- fix first setup experience
+
 ## [1.2.1]
 - update the changelog, readme, and .vscodeignore
 

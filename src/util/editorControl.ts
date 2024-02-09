@@ -29,34 +29,36 @@ export class EditorControl {
     };
   }
   
-  public static async updateOpenPanes(): Promise<Object | undefined> {
-    log.debug('util/updateOpenPanes:init() start');
-    var promptPaneFound = false;
-    var responsePaneFound = false;
-  
-    var promptPane: null | vscode.TextEditor = null;
-    var responsePane: null | vscode.TextEditor = null;
-  
-    const editors = vscode.window.visibleTextEditors || [];
-    console.log(JSON.stringify(editors, null, 2));
-  
-    for (let i = 0; i < editors.length; i++) {
-      if (editors[i].viewColumn === vscode.ViewColumn.One) {
-        EditorControl.setPromptPane(editors[i]);
-        promptPaneFound = true;
-        promptPane = editors[i];
+  public static async updateOpenPanes(): Promise<Object> {
+      log.debug('util/updateOpenPanes:init() start');
+      var promptPaneFound = false;
+      var responsePaneFound = false;
+    
+      var promptPane: null | vscode.TextEditor = null;
+      var responsePane: null | vscode.TextEditor = null;
+    
+      const editors = vscode.window.visibleTextEditors || [];
+      console.log(JSON.stringify(editors, null, 2));
+    
+      for (let i = 0; i < editors.length; i++) {
+        if (editors[i].viewColumn === vscode.ViewColumn.One) {
+          EditorControl.setPromptPane(editors[i]);
+          promptPaneFound = true;
+          promptPane = editors[i];
+        }
+        if (editors[i].viewColumn === vscode.ViewColumn.Two) {
+          EditorControl.setResponsePane(editors[i]);
+          responsePaneFound = true;
+          responsePane = editors[i];
+        }
+        if (promptPaneFound && responsePaneFound) {
+          return {
+            promptPane: promptPane,
+            responsePane: responsePane,
+          };
+        }
       }
-      if (editors[i].viewColumn === vscode.ViewColumn.Two) {
-        EditorControl.setResponsePane(editors[i]);
-        responsePaneFound = true;
-        responsePane = editors[i];
-      }
-      if (promptPaneFound && responsePaneFound) {
-        return {
-          promptPane: promptPane,
-          responsePane: responsePane,
-        };
-      }
-    }
+      await EditorControl.openBlankDocument();
+      return EditorControl.updateOpenPanes();
   }
 }

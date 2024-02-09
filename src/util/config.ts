@@ -8,10 +8,6 @@ const configNamespace = Globals.configNamespace;
 const log = Globals.log;
 
 export const configEnum: any = {
-  debug: {
-    type: 'boolean',
-    defaultValue: true,
-  },
   sendFullPromptTextOnContinue: {
     type: 'boolean',
     defaultValue: true,
@@ -34,7 +30,8 @@ export class Config {
       .getConfiguration(configNamespace)
       .update(
         key,
-        value
+        value,
+        vscode.ConfigurationTarget.Global
       );
 
     let configEntry = await vscode.workspace.getConfiguration(configNamespace).get(key);
@@ -43,7 +40,10 @@ export class Config {
 
   public static async get(key: string): Promise<any> {
     log.debug('util/config:get() start');
-    let configEntry = await vscode.workspace.getConfiguration(configNamespace).get(key);
+    let configEntry = await vscode.workspace.getConfiguration(configNamespace).get(key) || '';
+    if (configEntry === '') {
+      configEntry = configEnum[key].defaultValue;
+    }
     return configEntry;
   }
 

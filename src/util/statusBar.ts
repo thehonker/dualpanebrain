@@ -38,13 +38,13 @@ export class StatusBarItems {
     }
   };
 
-  public static init(context: vscode.ExtensionContext): void {
-    this._context = context;
-    StatusBarItems.updateStatusBarItems();
+  public static async init(context: vscode.ExtensionContext): Promise<void> {
+    StatusBarItems._context = context;
+    await StatusBarItems.updateStatusBarItems(context);
   }
 
   // This function updates the status bar items when called
-  public static async updateStatusBarItems() {
+  public static async updateStatusBarItems(context: vscode.ExtensionContext) {
     // Loop through the keys of the statusBarButtonConfig object
     Object.keys(StatusBarItems.statusBarButtonConfig).forEach((key: string) => {
       // Get the text from the key configuration object
@@ -72,7 +72,7 @@ export class StatusBarItems {
       // Assign the statusBarItem object to its respective key in the statusBarButtons object
       StatusBarItems.statusBarButtons[key] = statusBarItem;
       // Add the statusBarItem object to the subscriptions array in the provided context
-      this._context.subscriptions.push(statusBarItem);
+      context.subscriptions.push(statusBarItem);
     });
   }
 }

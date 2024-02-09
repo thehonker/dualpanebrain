@@ -13,10 +13,18 @@ import { parseBool } from './util';
 const configNamespace = Globals.configNamespace;
 const log = Globals.log;
 
+export class ApiInstance {
+  public instanceUUID: string = '';
+  public instanceName: string = '';
+  public apiUrl: string = '';
+  public apiModel: string = '';
+  public openai: any = null;
+}
+
 export class ApiConfiguration {
   private static _apiKeyStorage: ApiKeyStorage;
 
-  private static _apiConfigurations: Object = {};
+  public static apiConfigurations: Object = {};
 
   public static defaultApiInstance: string = '';
 
@@ -28,9 +36,13 @@ export class ApiConfiguration {
     log.debug('Loading api configurations object from settings.json');
 
     const apiConfigurationsString = await vscode.workspace.getConfiguration(configNamespace).get('apiConfigurations');
+    if (!apiConfigurationsString) {
+       vscode.window.showErrorMessage('No apiConfigurations, run \"dpb.setupApiInstance\" to add one');
+       return;
+    }
     const configuredApiConfigurations = JSON.parse(apiConfigurationsString as any);
-    
-    log.debug(JSON.stringify(configuredApiConfigurations, null, 2));
+
+    log.debug('configuredApiConfigurations' + JSON.stringify(configuredApiConfigurations, null, 2));
 
     const keys = Object.keys(configuredApiConfigurations);
 
@@ -42,15 +54,8 @@ export class ApiConfiguration {
         instanceName: configuration.instanceName,
         apiUrl: configuration.apiUrl,
         apiModel: configuration.apiModel,
+        apiKey: apiKey,
       });
-
-      // Update the config list
-      (ApiConfiguration._apiConfigurations as any)[configuration.instanceUUID] = {
-        instanceUUID: configuration.instanceUUID,
-        instanceName: configuration.instanceName,
-        apiUrl: configuration.apiUrl,
-        apiModel: configuration.apiModel,
-      };
 
       // If it's the first one we loaded, set it as default
       if (i === 0) {
@@ -92,65 +97,91 @@ export class ApiConfiguration {
     // Fetch the existing config if any
     const existingApiConfigurationString = await 
       vscode.workspace
-        .getConfiguration(`${configNamespace}.apiConfigurations`)
-        .get(options.instanceUUID)
+        .getConfiguration(configNamespace)
+        .get('apiConfigurations')
         || null;
 
-    var existingApiConfiguration = null;
-    if (existingApiConfigurationString !== null) {
+    var existingApiConfiguration: any = false;
+    if (existingApiConfigurationString!== null) {
       existingApiConfiguration = JSON.parse(existingApiConfigurationString as string);
     }
 
-    if (options.apiKey.length !== 0) {
-      // Store the api key
+    // This line will check if options.apiKey is undefined or null 
+    // and assign an empty string as fallback using the logical nullish assignment (??).
+    // Then we can safely use .length property on it without causing any errors.
+    if ((options.apiKey ?? '').length !== 0) { 
       await ApiConfiguration._apiKeyStorage.storeApiKey(
         options.instanceUUID,
-        options.apiKey as string
+        // This line will check if options.apiKey is undefined or null and assign an 
+        // empty string as fallback using the logical nullish assignment (??) to ensure that 
+        // it's never going to be falsy value while storing in storage function below.
+        options.apiKey ?? ''
       );
     }
-
+    
     // Fetch the api key back
     const apiKey = await ApiConfiguration._apiKeyStorage.getApiKey(options.instanceUUID) || '';
 
     // Setup the openai library
     const openai = new OpenAI({
-      baseURL: options.apiUrl || existingApiConfiguration.apiUrl,
-      apiKey: apiKey,
+      // This line checks whether 'options.apiUrl' exists and if not it will 
+      // check for the property of `existingApiConfiguration`. If both are undefined 
+      // or null then it would default to a zero-length string as fallback using optional chaining operator (??).
+      baseURL: options.apiUrl ?? existingApiConfiguration?.apiUrl,
+      // This line checks whether 'options.apiKey' exists and if not it will check for the property 
+      // of `existingApiConfiguration`. If both are undefined or null then it would default to a 
+      // zero-length string as fallback using optional chaining operator (??).
+      apiKey: options.apiKey ?? existingApiConfiguration?.apiKey,
     });
+
+    // Update the config list
+    (ApiConfiguration.apiConfigurations as any)[options.instanceUUID] = { 
+      instanceUUID: options.instanceUUID,
+      instanceName: options.instanceName,
+      apiUrl: options.apiUrl,
+      apiModel: options.apiModel,
+      openai: openai,
+    };
+
+    const filteredApiConfig = {};
+
+    const keys = Object.keys(ApiConfiguration.apiConfigurations);
+
+    for (let i = 0; i < keys.length; i++) {
+      (filteredApiConfig as any)[keys[i]] = {
+        instanceUUID: (ApiConfiguration.apiConfigurations as any)[keys[i]].instanceUUID,
+        instanceName: (ApiConfiguration.apiConfigurations as any)[keys[i]].instanceName,
+        apiUrl: (ApiConfiguration.apiConfigurations as any)[keys[i]].apiUrl,
+        apiModel: (ApiConfiguration.apiConfigurations as any)[keys[i]].apiModel,
+      };
+    }
+
+    log.debug('Filtered api config:');
+    log.debug(JSON.stringify(filteredApiConfig, null, 2));
 
     // Store the rest of the configuration
     await vscode.workspace
-      .getConfiguration(`${configNamespace}.apiConfigurations`)
+      .getConfiguration(configNamespace)
       .update(
-        `${options.instanceUUID}`,
-        JSON.stringify({
-          instanceUUID: options.instanceUUID,
-          instanceName: options.instanceName || existingApiConfiguration.instanceName,
-          apiUrl: options.apiUrl || existingApiConfiguration.apiUrl,
-          apiModel: options.apiModel || existingApiConfiguration.apiModel,
-        })
+        'apiConfigurations',
+        JSON.stringify(filteredApiConfig),
+        vscode.ConfigurationTarget.Global
       );
 
-    // Update the config list
-    (ApiConfiguration._apiConfigurations as any)[options.instanceUUID].instanceUUID = options.instanceUUID;
-    (ApiConfiguration._apiConfigurations as any)[options.instanceUUID].instanceName = options.instanceName;
-    (ApiConfiguration._apiConfigurations as any)[options.instanceUUID].apiUrl = options.apiUrl;
-    (ApiConfiguration._apiConfigurations as any)[options.instanceUUID].apiModel = options.apiModel;
-    (ApiConfiguration._apiConfigurations as any)[options.instanceUUID].instanceUUID = options.instanceUUID;
-    (ApiConfiguration._apiConfigurations as any)[options.instanceUUID].openai = openai;
+    log.debug(`API Instance ${options.instanceUUID} configured successfully`);
   }
 
   /**
    * Get api configuration
    * @param instanceUUID - the instance uuid to get configuration for
    */
-  public static async getApiConfiguration(instanceUUID: string): Promise<Object> {
+  public static async getApiConfiguration(instanceUUID: string): Promise<ApiInstance> {
     log.debug('util/apiConfiguration:getApiConfiguration() start');
 
     const apiConfigurationString = await 
       vscode.workspace
-        .getConfiguration(`${configNamespace}.apiConfigurations`)
-        .get(instanceUUID)
+        .getConfiguration(configNamespace)
+        .get('apiConfigurations')
         || null;
 
     var apiConfiguration = null;
@@ -165,22 +196,6 @@ export class ApiConfiguration {
       apiModel: apiConfiguration.apiModel,
       openai: apiConfiguration.openai,
     };
-  }
-
-  public static async getApiUrl(instanceUUID: string): Promise<string> {
-    log.debug('util/apiConfiguration:getApiUrl() start');
-    const apiConfigurationString = await 
-    vscode.workspace
-      .getConfiguration(`${configNamespace}.apiConfigurations`)
-      .get(instanceUUID)
-      || null;
-
-    var apiConfiguration = null;
-    if (apiConfigurationString !== null) {
-      apiConfiguration = JSON.parse(apiConfigurationString as string);
-    }
-
-    return apiConfiguration.apiUrl;
   }
 
   /**
